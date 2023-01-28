@@ -12,7 +12,7 @@ commands:
   # Exercise: Reusable Job Code
   print_pipeline_id:
     parameters:
-      id: 
+      id:
         type: string
     steps:
       - run: echo << parameters.id >>
@@ -22,18 +22,16 @@ commands:
     steps:
       - run:
           name: Destroy environment
-          # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable 
-          # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID 
+          # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable
+          # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
-          
-
 
 jobs:
   # Exercise: Creating a Simple Workflow
   # Exercise: Environment Variables
-  # Exercise: Reusable Job Code 
+  # Exercise: Reusable Job Code
   print_greetings:
     docker:
       - image: circleci/node:13.8.0
@@ -49,11 +47,11 @@ jobs:
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - run: echo "THIS IS A SAMPLE TEXT" > ~/output.txt  
+      - run: echo "THIS IS A SAMPLE TEXT" > ~/output.txt
       - persist_to_workspace:
           root: ~/
-          paths: 
-            - output.txt  
+          paths:
+            - output.txt
 
   download_file:
     docker:
@@ -61,11 +59,11 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
-      - run: cat ~/output.txt 
- 
+      - run: cat ~/output.txt
+
   # Exercise: Infrastructure Creation
   # Exercise - Rollback
-  create_infrastructure: 
+  create_infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
@@ -82,20 +80,21 @@ jobs:
       # - run: return 1
       - destroy_environment
 
-
   # Exercise: Config and Deployment
-  configure_infrastructure: 
+  configure_infrastructure:
     docker:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["0c:55:f7:d7:ad:e3:73:19:0b:e6:c6:46:5c:04:76:94"] # You can get this ID in the section where you registered the SSH Key
+          fingerprints: [
+              "79:90:83:1d:83:c5:e3:28:f1:96:c9:42:32:cf:73:37:da:63:af:f9",
+            ] # You can get this ID in the section where you registered the SSH Key
       - run:
           name: Install dependencies
           command: |
             # install the dependencies needed for your playbook
-            apk add --update ansible 
+            apk add --update ansible
       - run:
           name: Configure server
           command: |
@@ -118,21 +117,21 @@ jobs:
             else
               return 1
             fi
-      - destroy_environment      
-  
-  # Exercise: Promote to Production - Job 1 
-  # Prerequisite: 
-  # 1. An S3 bucket (say `mybucket644752792305`) with a sample index.html created manually in your AWS console. 
+      - destroy_environment
+
+  # Exercise: Promote to Production - Job 1
+  # Prerequisite:
+  # 1. An S3 bucket (say `mybucket644752792305`) with a sample index.html created manually in your AWS console.
   # 2. Enable the Static website hosting in that bucket.
-  # 3. Run the command below to create a CloudFront Distribution that will connect to the existing bucket. 
+  # 3. Run the command below to create a CloudFront Distribution that will connect to the existing bucket.
   # Note that the `--parameter-overrides` let you specify a value that override parameter value in the cloudfront.yml template file.
-  # We are assuming that the `PipelineID` parameter represents the bucket ID. 
+  # We are assuming that the `PipelineID` parameter represents the bucket ID.
 
   # aws cloudformation deploy \
   # --template-file cloudfront.yml \
   # --stack-name production-distro \
   # --parameter-overrides PipelineID="mybucket644752792305" \ # Name of the S3 bucket you created manually.
-  
+
   # Job 1
   # Executes the bucket.yml - Deploy an S3 bucket, and interface with that bucket to synchronize the files between local and the bucket.
   # Note that the `--parameter-overrides` let you specify a value that override parameter value in the bucket.yml template file.
@@ -150,7 +149,7 @@ jobs:
             --parameter-overrides MyBucketName="mybucket-${CIRCLE_WORKFLOW_ID:0:7}"
       # Uncomment the step below if yoou wish to upload all contents of the current directory to the S3 bucket
       # - run: aws s3 sync . s3://mybucket-${CIRCLE_WORKFLOW_ID:0:7} --delete
-  
+
   # Exercise: Promote to Production - Job 2
   # Fetch and save the pipeline ID (bucket ID) responsible for the last release.
   get_last_deployment_id:
@@ -167,11 +166,11 @@ jobs:
             --no-paginate --output text > ~/textfile.txt
       - persist_to_workspace:
           root: ~/
-          paths: 
-            - textfile.txt 
-  
+          paths:
+            - textfile.txt
+
   # Exercise: Promote to Production - Job 3
-  # Executes the cloudfront.yml template that will modify the existing CloudFront Distribution, change its target from the old bucket to the new bucket - `mybucket-${CIRCLE_WORKFLOW_ID:0:7}`. 
+  # Executes the cloudfront.yml template that will modify the existing CloudFront Distribution, change its target from the old bucket to the new bucket - `mybucket-${CIRCLE_WORKFLOW_ID:0:7}`.
   # Notice here we use the stack name `production-distro` which is the same name we used while deploying to the S3 bucket manually.
   promote_to_production:
     docker:
@@ -184,10 +183,10 @@ jobs:
             aws cloudformation deploy \
             --template-file cloudfront.yml \
             --stack-name production-distro \
-            --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:7}" 
+            --parameter-overrides PipelineID="mybucket-${CIRCLE_WORKFLOW_ID:0:7}"
 
   # Exercise: Promote to Production - Job 4
-  # Destroy the previous production version's S3 bucket and CloudFormation stack. 
+  # Destroy the previous production version's S3 bucket and CloudFormation stack.
   clean_up_old_front_end:
     docker:
       - image: amazon/aws-cli
@@ -197,17 +196,15 @@ jobs:
       - attach_workspace:
           at: ~/
       - run:
-          name: Destroy the previous production version's S3 bucket and CloudFormation stack. 
+          name: Destroy the previous production version's S3 bucket and CloudFormation stack.
           # Use $OldBucketID environment variable or mybucket644752792305 below.
-          # Similarly, you can create and use $OldStackID environment variable in place of production-distro 
+          # Similarly, you can create and use $OldStackID environment variable in place of production-distro
           command: |
             export OldBucketID=$(cat ~/textfile.txt)
             aws s3 rm "s3://${OldBucketID}" --recursive
-          #  aws cloudformation delete-stack --stack-name production-distro 
+          #  aws cloudformation delete-stack --stack-name production-distro
           #  aws cloudformation delete-stack --stack-name stack-create-bucket-${CIRCLE_WORKFLOW_ID:0:7}
           #  aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
-
-
 
 workflows:
   # Name the workflow "welcome"
@@ -224,7 +221,7 @@ workflows:
       - configure_infrastructure
       - create_and_deploy_front_end
       - promote_to_production:
-          requires: 
+          requires:
             - create_and_deploy_front_end
       - get_last_deployment_id
       - clean_up_old_front_end:
